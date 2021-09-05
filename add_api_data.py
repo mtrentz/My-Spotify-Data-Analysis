@@ -100,9 +100,22 @@ c = conn.cursor()
 
 LAST_FM_KEY = config("LAST_FM_KEY")
 
+### GET TRACKS (ONLY ONCE) NOT YET ADDED TO THE DATABASE (api requested)
 # Tuple (artist, track)
-# TODO: select only songs that dont have info on other tables (havent been requested from the api)
-unique_tracks = execute_fetch_all(c, "SELECT DISTINCT artist_name, track_name FROM user_data;")
+unique_tracks_sql = """
+SELECT DISTINCT 
+    artist_name,
+    track_name 
+FROM user_data  
+LEFT JOIN
+    artists
+    ON user_data.artist_name = artists.name
+LEFT JOIN
+    tracks
+    ON user_data.track_name = tracks.name AND artists.mbid = tracks.artist_mbid
+WHERE user_data.track_name NOT IN (SELECT name FROM tracks) AND artist_name NOT IN (SELECT name FROM artists)
+"""
+unique_tracks = execute_fetch_all(c, unique_tracks_sql)
 
 for artist, song in tqdm(unique_tracks, total=len(unique_tracks)):
   ### GET TRACK INFO
@@ -111,6 +124,7 @@ for artist, song in tqdm(unique_tracks, total=len(unique_tracks)):
     # This removes most of the - Remasters and - Live and stuff...
     song_to_req = song.split(' - ')[0]
     # spaces to +, just in case, to send over the url
+    # TODO: Encode this properly, songs with '#' on the name are bugging out.
     song_to_req = song_to_req.replace(' ', '+')
     artist_to_req = artist.replace(' ', '+')
     song_info_url = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={LAST_FM_KEY}&artist={artist_to_req}&track={song_to_req}&autocorrect=1&format=json'
