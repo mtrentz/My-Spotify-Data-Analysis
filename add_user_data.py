@@ -16,7 +16,6 @@ def execute_insert_sql(cursor, sql_str, vals):
 
 HERE = os.path.dirname(sys.argv[0])
 DATA_PATH = os.path.join(HERE, 'user_data')
-LAST_FM_KEY = config("LAST_FM_KEY")
 
 ### CONNECT TO DATABASE
 conn = sqlite3.connect('music.db')
